@@ -124,7 +124,6 @@ Certification.prototype.getRemediatorID = async function(object) {
 Certification.prototype.getSourceID = async function(object, sourceName) {
 
     try{
-
         function checkforSource(json) {
             return json.name == sourceName;
         }
@@ -249,7 +248,7 @@ Certification.prototype.checkCampaign = function(object) {
  * }
  */
 
-Certification.prototype.creagiteCampaign = function (object) {
+Certification.prototype.createCampaign = function (object) {
 
     
     const url = `${this. client.apiUrl}/beta/campaigns`;
@@ -257,7 +256,6 @@ Certification.prototype.creagiteCampaign = function (object) {
         contentType: 'application/json',
         formEncoded: false,
     }
-
     const post = (object) => {
         //AXIOS POST return promises, store promise in 'result' variable
         return this.client.post(url, object, options)
@@ -277,7 +275,6 @@ Certification.prototype.creagiteCampaign = function (object) {
     }
 
     // run checkCampaign()
-
     return this.checkCampaign(object)
         .then(object => {
             return post(object);
@@ -378,7 +375,6 @@ Certification.prototype.createTemplate = function (object) {
 Certification.prototype.listTemplate = function() {
 
     let url = this.client.apiUrl + '/beta/campaign-templates';
-    //let that = this;
 
     //AXIOS GET return promises, store promise in 'result' variable
     let result = this.client.get(url)
@@ -420,7 +416,6 @@ Certification.prototype.generate = function(id) {
         contentType: 'application/json',
         formEncoded: false,
     }
-
     // AXIOS POST return promises
     let result = this.client.post(url, options)
     .then(resp => {
