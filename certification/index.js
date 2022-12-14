@@ -4,7 +4,7 @@ function Certification( client ) {
     this.client=client;
 }
 // This is a 'Perform Search' API v3. 
-Certification.prototype.getPage=function( payload, off, lst) {
+Certification.prototype.getPage= function( payload, off, lst) {
         
     let offset=0;
     if (off!=null) {
@@ -51,14 +51,96 @@ Certification.prototype.getPage=function( payload, off, lst) {
 
 }
 
-/* Check json object whether it has required value
- * @param {object} certification json body. ex:
- * {
- *      "name" : "Manager Campaign",
- *      "description" : "Everyone needs to review this campaign",
- *      "type" : "SOURCE_OWNER"
- *      "deadline": "2020-03-15T10:00:01.456Z"
- * }
+/* Check json object and return reviewer ID
+ * @param {object} certification json body.
+ */
+
+
+Certification.prototype.getReviewerID = async function(object) {
+
+    try{
+        let query;
+        if (object.type === 'SEARCH') {
+            query = `attributes.displayName:${object.searchCampaignInfo.reviewer.name}`;
+        } else if (object.type === 'ROLE_COMPOSITION') {
+            query = `attributes.displayName:${object.roleCompositionCampaignInfo.reviewer.name}`;
+        }
+
+        let payload = {
+            queryType: "SAILPOINT",
+            indices: [ "identities" ],
+            query: {
+                query: query
+            }
+        }
+
+        return this.getPage(payload)
+            .then(resp => {
+                return resp[0].id;
+            })
+
+    } catch (Error) {
+        return Error;
+    }
+
+}
+
+/* Check json object and return remediator ID
+ * @param {object} certification json body. 
+ */
+
+
+Certification.prototype.getRemediatorID = async function(object) {
+
+    try{
+        // default remediator is se.admin
+        let query = `attributes.displayName:se.admin`;
+
+        let payload = {
+            queryType: "SAILPOINT",
+            indices: [ "identities" ],
+            query: {
+                query: query
+            }
+        }
+
+        return this.getPage(payload)
+            .then(resp => {
+                return resp[0].id;
+            })
+
+    } catch (Error) {
+        return Error;
+    }
+
+}
+
+
+/* Check json object and return source ID
+ * @param {object} certification json body. 
+ */
+
+
+Certification.prototype.getSourceID = async function(object, sourceName) {
+
+    try{
+
+        function checkforSource(json) {
+            return json.name == sourceName;
+        }
+
+        return this.client.Sources.list()
+            .then(resp => {
+                return resp.find(checkforSource).id;
+            })
+
+    } catch (Error) {
+        return Error;
+    }
+
+}
+/* Check json object whether it has required value and add necessary ID(S) based on types
+ * @param {object} certification json body.
  */
 
 Certification.prototype.checkCampaign = function(object) {
@@ -81,11 +163,80 @@ Certification.prototype.checkCampaign = function(object) {
             status: -6,
             statusText: 'No type specified for creation'
         });
+
     } else {
         console.log('all checks pass');
-        return true;
+        // Add necessary ID(s) based on the Campaign type
+        // For search campaign that has reviewer:  search for the reviewer ID
+        if (object.type === "SEARCH") {
+
+            if (object.searchCampaignInfo.reviewer) {
+                return this.getReviewerID(object)
+                    .then(resp => {
+                        object.searchCampaignInfo.reviewer.id = resp;
+                        return object;
+                    })
+                    .catch(err => {
+                        return err;
+                    })
+            } else {
+                return Promise.resolve(object);
+            }
+        // For role composition campaign:  search for the remediator and reviewer ID
+        } else if (object.type === "ROLE_COMPOSITION") {
+
+            return this.getRemediatorID(object)
+                .then(remediatorId => {
+                    console.log(`Remediator ID: ${remediatorId}`);
+                    object.roleCompositionCampaignInfo.remediatorRef.id = remediatorId;
+                    return object;
+                })
+                .then(object => {
+                    if (object.roleCompositionCampaignInfo.reviewer) {
+                        return this.getReviewerID(object)
+                            .then (reviewerId => {
+                                console.log(`Reviewer ID: ${reviewerId}`);
+                                object.roleCompositionCampaignInfo.reviewer.id = reviewerId;
+                                return object;
+                            })
+                    } else {
+                        return Promise.resolve(object);
+                    }
+                })
+                .catch (err => {
+                    return err;
+                })
+
+        //For source owner campaign: search for the source ID
+        } else if (object.type === "SOURCE_OWNER") {
+
+            // Manually do PRISM / Active Directory source
+            if (object.name.includes("PRISM")) {
+                return this.getSourceID(object, "PRISM")
+                .then(id => {
+                    object.sourceOwnerCampaignInfo.sourceIds.push(id);
+                    return object;
+                })
+                .catch (err => {
+                    return err;
+                })
+            } else if (object.name.includes("Active Directory")) {
+                return this.getSourceID(object, "Active Directory")
+                .then(id => {
+                    object.sourceOwnerCampaignInfo.sourceIds.push(id);
+                    return object;
+                })
+                .catch (err => {
+                    return err;
+                })
+            }
+         // If this is a manager campaign, do nothing..
+        } else {
+            return Promise.resolve(object);
+        }
     }
 }
+
 
 
 /* Create a new certification campaign with information in object parameter
@@ -100,18 +251,16 @@ Certification.prototype.checkCampaign = function(object) {
 
 Certification.prototype.createCampaign = function (object) {
 
-    // check if object has required items (name, description, type)
-    let check = this.checkCampaign(object);
-
-    if (check == true) {
-        const url = `${this. client.apiUrl}/beta/campaigns`;
-        const options = {
-            contentType: 'application/json',
-            formEncoded: false,
-        }
     
-        // AXIOS POST return promises, store promise in 'result' variable
-        let result = this.client.post(url, object, options)
+    const url = `${this. client.apiUrl}/beta/campaigns`;
+    const options = {
+        contentType: 'application/json',
+        formEncoded: false,
+    }
+
+    const post = (object) => {
+        //AXIOS POST return promises, store promise in 'result' variable
+        return this.client.post(url, object, options)
             .then(resp => {
                 return resp.data;
             }).catch( err => {
@@ -125,11 +274,20 @@ Certification.prototype.createCampaign = function (object) {
                     statusText: err.statusText || err.exception_message
                 });
             })
-        return result;
-
-    } else {
-        return check;
     }
+
+    // run checkCampaign()
+
+    return this.checkCampaign(object)
+        .then(object => {
+            return post(object);
+        })
+        .then(resp => {
+            return resp;
+        })
+        .catch (err => {
+            return err;
+        })
 
 }
 
@@ -171,35 +329,43 @@ Certification.prototype.createTemplate = function (object) {
         });
     }
 
-    // check if campaign key object has name or description or type
-    let check = this.checkCampaign(object.campaign);
-
-    if (check == true){
-        const url = `${this. client.apiUrl}/beta/campaign-templates`;
-        const options = {
-            contentType: 'application/json',
-            formEncoded: false,
-        }
-    
-        // AXIOS POST return promises
-        let result = this.client.post(url, object, options)
+    const url = `${this. client.apiUrl}/beta/campaign-templates`;
+    const options = {
+        contentType: 'application/json',
+        formEncoded: false,
+    }
+    const post = (object) => {
+        //AXIOS POST return promises, store promise in 'result' variable
+        return this.client.post(url, object, options)
             .then(resp => {
                 return resp.data;
             }).catch( err => {
                 if (!err.statusText) {
-                    console.log('err with no statusText calling certification.createTemplate /beta/campaign-template');
+                    console.log('err with no statusText calling certification.create /beta/campaigns');
                     console.log(err);
                 }
                 return Promise.reject({
-                    url: 'Certification.createTemplate',
+                    url: 'Certification.createCampaign',
                     status: -9,
                     statusText: err.statusText || err.exception_message
                 });
             })
-        return result;
-    } else {
-        return check;
     }
+    
+
+    // run checkCampaign() againts the campaign value
+    return this.checkCampaign(object.campaign)
+        .then(campaignWithIds => {
+            // then replace the key value
+            object.campaign = campaignWithIds;
+            return post(object);
+        })
+        .then(resp => {
+            return resp;
+        })
+        .catch (err => {
+            return err;
+        })
 
 }
 
