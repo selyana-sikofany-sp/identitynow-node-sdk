@@ -243,7 +243,7 @@ Certification.prototype.checkCampaign = function(object) {
 Certification.prototype.createCampaign = function (object) {
 
     
-    const url = `${this. client.apiUrl}/beta/campaigns`;
+    const url = `${this.client.apiUrl}/beta/campaigns`;
     const options = {
         contentType: 'application/json',
         formEncoded: false,
@@ -317,7 +317,7 @@ Certification.prototype.createTemplate = function (object) {
         });
     }
 
-    const url = `${this. client.apiUrl}/beta/campaign-templates`;
+    const url = `${this.client.apiUrl}/beta/campaign-templates`;
     const options = {
         contentType: 'application/json',
         formEncoded: false,
@@ -364,7 +364,7 @@ Certification.prototype.createTemplate = function (object) {
  */
 Certification.prototype.listTemplate = function() {
 
-    let url = this.client.apiUrl + '/beta/campaign-templates';
+    let url = `${this.client.apiUrl}/beta/campaign-templates`;
 
     //AXIOS GET return promises, store promise in 'result' variable
     let result = this.client.get(url)
