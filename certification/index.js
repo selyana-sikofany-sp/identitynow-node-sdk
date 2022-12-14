@@ -54,8 +54,6 @@ Certification.prototype.getPage= function( payload, off, lst) {
 /* Check json object and return reviewer ID
  * @param {object} certification json body.
  */
-
-
 Certification.prototype.getReviewerID = async function(object) {
 
     try{
@@ -88,8 +86,6 @@ Certification.prototype.getReviewerID = async function(object) {
 /* Check json object and return remediator ID
  * @param {object} certification json body. 
  */
-
-
 Certification.prototype.getRemediatorID = async function(object) {
 
     try{
@@ -119,8 +115,6 @@ Certification.prototype.getRemediatorID = async function(object) {
 /* Check json object and return source ID
  * @param {object} certification json body. 
  */
-
-
 Certification.prototype.getSourceID = async function(object, sourceName) {
 
     try{
@@ -141,7 +135,6 @@ Certification.prototype.getSourceID = async function(object, sourceName) {
 /* Check json object whether it has required value and add necessary ID(S) based on types
  * @param {object} certification json body.
  */
-
 Certification.prototype.checkCampaign = function(object) {
     // check if object has required items (name, description, type)
     if (!object.name) {
@@ -247,7 +240,6 @@ Certification.prototype.checkCampaign = function(object) {
  *      "deadline": "2020-03-15T10:00:01.456Z"
  * }
  */
-
 Certification.prototype.createCampaign = function (object) {
 
     
@@ -302,7 +294,6 @@ Certification.prototype.createCampaign = function (object) {
  *      "deadlineDuration" : "P2W"
  * }
  */
-
 Certification.prototype.createTemplate = function (object) {
 
     // check if object has required items (name, description, campaign object)
@@ -371,7 +362,6 @@ Certification.prototype.createTemplate = function (object) {
 /* List Campaign Template
  * No object parameter is needed
  */
-
 Certification.prototype.listTemplate = function() {
 
     let url = this.client.apiUrl + '/beta/campaign-templates';
@@ -405,8 +395,6 @@ Certification.prototype.listTemplate = function() {
 /* Create a new certification campaign template with information in object parameter
  *  @param {string} campaign id - ex: 27cff0281ae647c4b4917e5bdd48c3dc
  */
-
-
 Certification.prototype.generate = function(id) {
 
     let url = `${this.client.apiUrl}/beta/campaign-templates/${id}/generate`;
