@@ -249,7 +249,7 @@ Certification.prototype.checkCampaign = function(object) {
  * }
  */
 
-Certification.prototype.createCampaign = function (object) {
+Certification.prototype.creagiteCampaign = function (object) {
 
     
     const url = `${this. client.apiUrl}/beta/campaigns`;
